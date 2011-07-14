@@ -114,7 +114,7 @@ if [ -n "$(svn status -q)" ]; then
 	echo -n 'committing changes to trunk...'
 	msgtemplate="upgpkg: $pkgbase $(get_full_version ${epoch:-0} $pkgver $pkgrel)"$'\n\n'
 	if [ -n "$1" ]; then
-		svn commit -q -m "${msgtemplate}${1}" || abort
+		svn commit -q -m "${msgtemplate}$*" || abort
 	else
 		msgfile="$(mktemp)"
 		echo "$msgtemplate" > "$msgfile"
