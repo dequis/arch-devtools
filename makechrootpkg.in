@@ -253,22 +253,19 @@ EOF
 }
 
 download_sources() {
-	local builddir="$(mktemp -d)"
+	local builddir=$(mktemp -d)
 	chmod 1777 "$builddir"
+	trap 'rm -rf "$builddir"' RETURN EXIT
 
 	# Ensure sources are downloaded
 	if [[ -n $SUDO_USER ]]; then
-		sudo -u $SUDO_USER env SRCDEST="$SRCDEST" BUILDDIR="$builddir" \
+		sudo -u "$SUDO_USER" SRCDEST="$SRCDEST" BUILDDIR="$builddir" \
 			makepkg --config="$copydir/etc/makepkg.conf" --verifysource -o
 	else
-		( export SRCDEST BUILDDIR="$builddir"
+		SRCDEST="$SRCDEST" BUILDDIR="$builddir" \
 			makepkg --asroot --config="$copydir/etc/makepkg.conf" --verifysource -o
-		)
 	fi
 	(( $? != 0 )) && die "Could not download sources."
-
-	# Clean up garbage from verifysource
-	rm -rf $builddir
 }
 
 _chrootbuild() {
