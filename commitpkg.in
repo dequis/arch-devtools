@@ -122,6 +122,7 @@ if [[ -n $(svn status -q) ]]; then
 fi
 
 declare -a uploads
+declare -a debugs
 declare -a commit_arches
 declare -a skip_arches
 
@@ -153,6 +154,25 @@ for _arch in ${arch[@]}; do
 			die "Signature %s.sig is incorrect!" "$pkgfile"
 		fi
 		uploads+=("$sigfile")
+
+		# check for debug package
+		if ! pkgfile==$(find_cached_package "$_pkgname-debug" "$fullver" "${_arch}"); then
+			continue
+		fi
+		debugs+=("$pkgfile")
+
+		sigfile="${pkgfile}.sig"
+		if [[ ! -f $sigfile ]]; then
+			msg "Signing package ${pkgfile}..."
+			if [[ -n $GPGKEY ]]; then
+				SIGNWITHKEY="-u ${GPGKEY}"
+			fi
+			gpg --detach-sign --use-agent --no-armor ${SIGNWITHKEY} "${pkgfile}" || die
+		fi
+		if ! gpg --verify "$sigfile" >/dev/null 2>&1; then
+			die "Signature %s.sig is incorrect!" "$pkgfile"
+		fi
+		debugs+=("$sigfile")
 	done
 done
 
@@ -178,6 +198,20 @@ if [[ ${#uploads[*]} -gt 0 ]]; then
 	unset new_uploads
 	msg 'Uploading all package and signature files'
 	rsync "${rsyncopts[@]}" "${uploads[@]}" "$server:staging/$repo/" || die
+fi
+
+if [[ ${#debugs[*]} -gt 0 ]]; then
+	new_debugs=()
+
+	# convert to absolute paths so rsync can work with colons (epoch)
+	while read -r -d '' debug; do
+		new_debugs+=("$debugs")
+	done < <(realpath -z "${debugs[@]}")
+
+	uploads=("${new_debugs[@]}")
+	unset new_debugs
+	msg 'Uploading all debug package and signature files'
+	rsync "${rsyncopts[@]}" "${debugs[@]}" "$server:staging/$repo-debug/" || die
 fi
 
 if [[ "${arch[*]}" == 'any' ]]; then
