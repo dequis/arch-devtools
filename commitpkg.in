@@ -156,7 +156,7 @@ for _arch in ${arch[@]}; do
 		uploads+=("$sigfile")
 
 		# check for debug package
-		if ! pkgfile==$(find_cached_package "$_pkgname-debug" "$fullver" "${_arch}"); then
+		if ! pkgfile=$(find_cached_package "$_pkgname-debug" "$fullver" "${_arch}"); then
 			continue
 		fi
 		debugs+=("$pkgfile")
